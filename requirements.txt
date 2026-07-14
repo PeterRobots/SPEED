@@ -1,0 +1,32 @@
+# Core deep learning stack.
+# Install torch/torchvision wheels that match your CUDA driver if the default
+# PyPI wheels are not suitable for your machine.
+torch
+torchvision
+xformers
+
+# Training, distributed execution, logging, and config.
+accelerate
+diffusers
+transformers
+omegaconf
+swanlab
+tqdm
+requests
+einops
+
+# Data loading and image/video I/O.
+numpy
+pandas
+opencv-python
+Pillow
+av
+scikit-image
+
+# Perceptual losses and metrics.
+lpips
+DISTS-pytorch
+
+# FloLPIPS/PWCNet uses a CuPy CUDA correlation kernel.
+# For CUDA 11 environments, replace this with cupy-cuda11x.
+cupy-cuda12x

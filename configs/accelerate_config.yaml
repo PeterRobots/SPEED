@@ -1,0 +1,19 @@
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: MULTI_GPU
+downcast_bf16: 'no'
+enable_cpu_affinity: true
+gpu_ids: all
+machine_rank: 0  # Note: For multi-machine training, change this value sequentially on each machine to 0, 1, 2, 3...
+main_process_ip: 10.164.28.176   # Required only for multi-machine training; set to the IP of the master machine (where machine_rank is 0)
+main_process_port: 12356   # Required only for multi-machine training
+main_training_function: main
+mixed_precision: bf16
+num_machines: 4     # Set to: the total number of machines
+num_processes: 16    # Set to: number of machines x number of GPUs per machine
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false

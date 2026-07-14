@@ -1,0 +1,71 @@
+# accelerate args
+global_seed: 0
+mixed_precision: "bf16"
+gradient_accumulation_steps: 1
+tracker_project_name: SPEED
+experiment_name: stage_2_6_4
+# trainer args
+trainer_args:
+  visual_results_num: 4  # This num must be smaller than batch_size
+  base_resolution: 384
+  small_method: "crop" # "resize" or "crop"
+# model args
+model_name: SPEED
+pretrained_path: null
+model_args:
+  patch_sizes: [64, 32, 16]
+  depths: [2, 6, 4]
+  hidden_dim: 768
+  head_dim: 64
+# dataset args
+dataset_name: "LAVIB"
+val_dataset_name: "SNU_FILM"
+dataset_args:
+  LAVIB:
+    split_name: "train"
+    data_dir: datasets/LAVIB
+    height: 1296
+    width: 1296
+    dur_list: [3, 5, 7]
+    dur_weights: [1.0, 0., 0.]
+  DAVIS:
+    data_dir: datasets/DAVIS
+    height: 480
+    width: 854
+    is_val: true
+  SNU_FILM:
+    data_dir: datasets/snu_film
+    mode: extreme
+  XTest:
+    data_dir: datasets/X4K1000FPS/test
+    res: 2k
+dataloader:
+  batch_size: 4
+  shuffle: true
+  drop_last: true
+  num_workers: 16
+val_dataloader:
+  batch_size: 1
+  num_workers: 8
+# training args
+output_dir: /mnt/group/zhangzihao/outputs/FreqVFI
+epochs: 100
+log_every_steps: 10
+val_every_steps: 1000  # save ckpt after validation
+visual_every_steps: 1000
+validate_metric: "LPIPS"  # PSNR, SSIM, LPIPS, DISTS, L1
+init_val_metric_value: 1.  # 0., 0., 1., 1., 1.
+optimizer:
+  weight_decay: 1.0e-4
+  betas: [0.9, 0.99]
+  eps: 1.0e-06
+base_lr: 1e-04
+lr_scheduler: "cosine"
+warmup_steps: 100
+loss_function_args:
+  lpips_loss_weight: 1.0
+  dists_loss_weight: 1.0 # We found that DISTS loss is more stable than style loss, so we recommend using DISTS loss.
+  style_loss_weight: 0 # If using style loss, please set it to 20.
+  lpips_loss_start: 0
+  dists_loss_start: 0
+  style_loss_start: 0

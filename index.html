@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="SPEED is an ACM MM 2026 video frame interpolation method.">
+  <meta name="keywords" content="SPEED, video frame interpolation, ACM MM 2026, diffusion, DiT">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPEED | ACM MM 2026</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/index.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav">
+      <a href="#top" class="nav-brand">SPEED</a>
+      <div class="nav-links">
+        <a href="#abstract">Abstract</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#results">Results</a>
+        <a href="#citation">BibTeX</a>
+      </div>
+    </nav>
+
+    <main id="top" class="hero-content">
+      <p class="venue">ACM MM 2026</p>
+      <h1>SPEED</h1>
+      <p class="subtitle">A PyTorch framework for high-quality video frame interpolation.</p>
+
+      <div class="authors">
+        <span>Zihao Zhang<sup>1,2,*</sup></span>
+        <span>Haoyu Zhao<sup>1,*</sup></span>
+        <span>Siqian Yang<sup>2</sup></span>
+        <span>Yidi Wu<sup>2</sup></span>
+        <span>Yudong Jiang<sup>2</sup></span>
+        <span>Zuxuan Wu<sup>1,&dagger;</sup></span>
+      </div>
+
+      <div class="affiliations">
+        <p><sup>1</sup>Fudan University &nbsp;&nbsp; <sup>2</sup>Bilibili Inc</p>
+        <p><sup>*</sup>Equal contribution. &nbsp; <sup>&dagger;</sup>Corresponding author.</p>
+      </div>
+
+      <div class="buttons">
+        <a class="button disabled" href="#" aria-disabled="true">Paper Coming Soon</a>
+        <a class="button disabled" href="#" aria-disabled="true">Model Coming Soon</a>
+        <a class="button primary" href="https://github.com/bbldCVer/SPEED">Code</a>
+      </div>
+
+      <figure class="figure hero-figure" data-placeholder="Add static/images/teaser.png">
+        <img src="./static/images/teaser.png" alt="SPEED teaser">
+      </figure>
+    </main>
+  </header>
+
+  <section id="abstract" class="section">
+    <div class="container narrow">
+      <h2>Abstract</h2>
+      <p>
+        Video frame interpolation aims to synthesize intermediate frames from two endpoint frames.
+        SPEED is an efficient frame interpolation framework built with a pyramid DiT-style architecture.
+        The model conditions on the start and end frames, predicts the intermediate frame directly, and is
+        trained with pixel-level and perceptual objectives. The released implementation supports training,
+        evaluation, image-pair inference, and sequential or batched video interpolation.
+      </p>
+    </div>
+  </section>
+
+  <section id="pipeline" class="section alt">
+    <div class="container">
+      <h2>Pipeline</h2>
+      <figure class="figure" data-placeholder="Add static/images/pipeline.png">
+        <img src="./static/images/pipeline.png" alt="SPEED pipeline">
+      </figure>
+      <p class="caption">
+        SPEED uses endpoint frames as conditions and predicts the intermediate RGB frame with a pyramid transformer backbone.
+      </p>
+    </div>
+  </section>
+
+  <section id="results" class="section">
+    <div class="container">
+      <h2>Visual Results</h2>
+      <figure class="figure" data-placeholder="Add static/images/visualization.png">
+        <img src="./static/images/visualization.png" alt="SPEED visual results">
+      </figure>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <h2>Additional Results</h2>
+      <figure class="figure" data-placeholder="Add static/images/appendix_visualization.png">
+        <img src="./static/images/appendix_visualization.png" alt="SPEED appendix visual results">
+      </figure>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container narrow">
+      <h2>Code Release</h2>
+      <p>
+        The repository provides scripts for model training, evaluation, and inference. Image-pair inference and
+        video interpolation are supported through <code>inference.py</code>. Video interpolation can run in
+        <code>parallel</code> mode for higher throughput or <code>sequential</code> mode for lower memory usage.
+      </p>
+      <pre><code>python inference.py \
+  --config configs/eval_config.yaml \
+  --pretrained_path checkpoints/speed.pt \
+  --frame0 examples/frame_0.png \
+  --frame1 examples/frame_1.png \
+  --output interpolation_outputs/interpolated.png \
+  --precision bf16</code></pre>
+    </div>
+  </section>
+
+  <section id="citation" class="section alt">
+    <div class="container narrow">
+      <h2>BibTeX</h2>
+      <pre><code>@inproceedings{zhang2026speed,
+  title={SPEED},
+  author={Zhang, Zihao and Zhao, Haoyu and Yang, Siqian and Wu, Yidi and Jiang, Yudong and Wu, Zuxuan},
+  booktitle={Proceedings of the ACM International Conference on Multimedia},
+  year={2026}
+}</code></pre>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>SPEED | ACM MM 2026</p>
+  </footer>
+
+  <script src="./static/js/index.js"></script>
+</body>
+</html>
