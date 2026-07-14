@@ -9,21 +9,11 @@ This repository is the official PyTorch implementation of the following paper:
 
 > **SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation**
 >
-> Zihao Zhang<sup>1,2,*</sup>, Haoyu Zhao<sup>1,*</sup>, Siqian Yang<sup>2</sup>, Yidi Wu<sup>2</sup>,
-> Yudong Jiang<sup>2</sup>, Zuxuan Wu<sup>1,&dagger;</sup>
->
-> <sup>1</sup>Fudan University &nbsp;&nbsp; <sup>2</sup>Bilibili Inc
->
-> <sup>*</sup>Equal contribution. &nbsp; <sup>&dagger;</sup>Corresponding author.
+> Zihao Zhang, Haoyu Zhao, Siqian Yang, Yidi Wu, Yudong Jiang, Zuxuan Wu
 
 <div align="center">
-  <img src="assets/teaser.png" alt="SPEED teaser" width="95%">
+  <img src="assets/teaser.svg" alt="SPEED teaser" width="95%">
 </div>
-
-## News
-
-- **2026-07**: SPEED has been accepted to ACM MM 2026.
-- Code, project page, checkpoints, and paper links will be updated progressively.
 
 ## Introduction
 
@@ -40,7 +30,7 @@ SPEED is built around three key components:
 ## Pipeline
 
 <div align="center">
-  <img src="assets/pipeline.png" alt="SPEED pipeline" width="95%">
+  <img src="assets/pipeline.svg" alt="SPEED pipeline" width="95%">
 </div>
 
 Given the starting frame `I0`, ending frame `I1`, Gaussian noise, and timestep `t=1`, SPEED directly predicts the clean intermediate frame in one step. The three-stage pixel-space Transformer progressively transforms motion-aware representations into detail-refined intermediate frames.
@@ -56,23 +46,23 @@ SPEED achieves state-of-the-art perceptual quality while substantially reducing 
 ## Visual Results
 
 <div align="center">
-  <img src="assets/visualization.png" alt="SPEED visual results" width="95%">
+  <img src="assets/visualization.svg" alt="SPEED visual results" width="95%">
 </div>
 
 Additional qualitative results can be placed at:
 
 <div align="center">
-  <img src="assets/appendix_visualization.png" alt="SPEED appendix visual results" width="95%">
+  <img src="assets/appendix_visualization.svg" alt="SPEED appendix visual results" width="95%">
 </div>
 
 Please put the release figures in the following paths before pushing:
 
 ```text
 assets/
-├── teaser.png
-├── pipeline.png
-├── visualization.png
-└── appendix_visualization.png
+├── teaser.svg
+├── pipeline.svg
+├── visualization.svg
+└── appendix_visualization.svg
 ```
 
 The project page uses the same file names under `static/images/`.
