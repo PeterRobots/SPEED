@@ -15,57 +15,15 @@ This repository is the official PyTorch implementation of the following paper:
   <img src="assets/teaser.svg" alt="SPEED teaser" width="95%">
 </div>
 
-## Introduction
-
-Diffusion models have recently shown strong potential for Video Frame Interpolation (VFI), especially under complex and non-linear motion. However, existing diffusion-based VFI methods are mostly latent diffusion models, which introduce two practical bottlenecks: compression into a latent space loses fine-grained image details, and iterative sampling causes high inference latency and memory usage.
-
-**SPEED** addresses these limitations with a **one-step pixel diffusion** framework. Instead of denoising in a VAE latent space, SPEED performs interpolation directly in RGB pixel space and generates the target intermediate frame with a single forward pass. This design avoids VAE-induced blur and detail loss while making diffusion-based VFI efficient enough for high-resolution scenarios.
-
-SPEED is built around three key components:
-
-- **Progressive multi-stage architecture**: a macroscopic-to-microscopic Transformer design with dynamic patch scaling from `64 -> 32 -> 16`, enabling the model to first capture global motion, then refine structure, and finally synthesize fine-grained appearance.
-- **Noise-Update-Only (NUO) Attention**: an asymmetric attention mechanism where only noisy target-frame tokens are updated while clean condition-frame tokens remain uncorrupted. It provides global spatio-temporal context while reducing attention complexity from `O(9N^2)` to `O(3N^2)`.
-- **Drift-aware Timestep Sampling (DTS)** with direct clean-frame prediction: a training curriculum that shifts from full trajectory learning toward the one-step boundary condition, enabling high-quality one-step inference in pixel space.
-
 ## Pipeline
 
 <div align="center">
   <img src="assets/pipeline.svg" alt="SPEED pipeline" width="95%">
-</div>
+</div><br/>
 
-Given the starting frame `I0`, ending frame `I1`, Gaussian noise, and timestep `t=1`, SPEED directly predicts the clean intermediate frame in one step. The three-stage pixel-space Transformer progressively transforms motion-aware representations into detail-refined intermediate frames.
+We introduce SPEED, a one-step pixel diffusion framework for high-quality video frame interpolation. Unlike previous latent diffusion VFI methods, SPEED performs denoising directly in the RGB pixel space, avoiding VAE-induced detail loss while bypassing expensive iterative sampling.
 
-## Main Results
-
-SPEED achieves state-of-the-art perceptual quality while substantially reducing the cost of diffusion-based interpolation:
-
-- On **SNU-FILM Extreme**, SPEED reaches `0.0880` LPIPS and `0.1447` FloLPIPS, improving over EDEN by `8.8%` and `10.8%`, respectively.
-- On **DAVIS**, SPEED generates one intermediate frame in `36.6 ms` with `2.268 GB` peak memory on an NVIDIA A100-80G GPU, reducing inference time by `58.3%` compared with EDEN.
-- On **XTest4K**, SPEED achieves `0.1070` LPIPS and `0.1484` FloLPIPS with `7.210 GB` peak memory, avoiding the severe detail degradation and memory bottlenecks of latent diffusion baselines.
-
-## Visual Results
-
-<div align="center">
-  <img src="assets/visualization.svg" alt="SPEED visual results" width="95%">
-</div>
-
-Additional qualitative results can be placed at:
-
-<div align="center">
-  <img src="assets/appendix_visualization.svg" alt="SPEED appendix visual results" width="95%">
-</div>
-
-Please put the release figures in the following paths before pushing:
-
-```text
-assets/
-├── teaser.svg
-├── pipeline.svg
-├── visualization.svg
-└── appendix_visualization.svg
-```
-
-The project page uses the same file names under `static/images/`.
+Our framework adopts a progressive multi-stage Transformer with dynamic patch scaling from `64 -> 32 -> 16`, enabling a macroscopic-to-microscopic generation process that first captures large-scale motion, then refines structural alignment, and finally synthesizes fine-grained textures. We further introduce Noise-Update-Only (NUO) Attention to update only the noisy target-frame tokens while preserving clean condition-frame semantics, and Drift-aware Timestep Sampling (DTS) with direct clean-frame prediction to enable high-quality one-step inference.
 
 ## Quick Start
 
