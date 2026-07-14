@@ -12,7 +12,7 @@ This repository is the official PyTorch implementation of the following paper:
 > Zihao Zhang, Haoyu Zhao, Siqian Yang, Yidi Wu, Yudong Jiang, Zuxuan Wu
 
 <div align="center">
-  <img src="assets/teaser.svg" alt="SPEED teaser" width="95%">
+  <img src="assets/visualization.svg" alt="SPEED visual results" width="95%">
 </div>
 
 ## Pipeline
@@ -24,6 +24,14 @@ This repository is the official PyTorch implementation of the following paper:
 We introduce SPEED, a one-step pixel diffusion framework for high-quality video frame interpolation. Unlike previous latent diffusion VFI methods, SPEED performs denoising directly in the RGB pixel space, avoiding VAE-induced detail loss while bypassing expensive iterative sampling.
 
 Our framework adopts a progressive multi-stage Transformer with dynamic patch scaling from `64 -> 32 -> 16`, enabling a macroscopic-to-microscopic generation process that first captures large-scale motion, then refines structural alignment, and finally synthesizes fine-grained textures. We further introduce Noise-Update-Only (NUO) Attention to update only the noisy target-frame tokens while preserving clean condition-frame semantics, and Drift-aware Timestep Sampling (DTS) with direct clean-frame prediction to enable high-quality one-step inference.
+
+<div align="center">
+  <img src="assets/appendix_visualization.svg" alt="SPEED additional visual results" width="95%">
+</div><br/>
+
+<div align="center">
+  <img src="assets/high_res_visualization.svg" alt="SPEED high-resolution visual comparison" width="95%">
+</div>
 
 ## Quick Start
 
