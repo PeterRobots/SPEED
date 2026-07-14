@@ -1,13 +1,13 @@
-# [ACM MM 2026] SPEED
+# [ACM MM 2026] SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation
 
-<a href="#"><img src="https://img.shields.io/badge/Paper-Coming%20Soon-lightgrey"></a>
-<a href="#"><img src="https://img.shields.io/badge/Model-Coming%20Soon-orange"></a>
+<a href="#"><img src="https://img.shields.io/badge/Paper-Coming%20Soon-red"></a>
+<a href="#"><img src="https://img.shields.io/badge/Model-Coming%20Soon-yellow"></a>
 <a href="https://bbldCVer.github.io/SPEED/"><img src="https://img.shields.io/badge/Project-Page-Green"></a>
 <a href="https://github.com/bbldCVer/SPEED"><img src="https://img.shields.io/badge/Code-GitHub-black"></a>
 
-This repository is the official PyTorch implementation of **SPEED**, accepted to **ACM MM 2026**.
+This repository is the official PyTorch implementation of the following paper:
 
-> **SPEED**
+> **SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation**
 >
 > Zihao Zhang<sup>1,2,*</sup>, Haoyu Zhao<sup>1,*</sup>, Siqian Yang<sup>2</sup>, Yidi Wu<sup>2</sup>,
 > Yudong Jiang<sup>2</sup>, Zuxuan Wu<sup>1,&dagger;</sup>
@@ -25,13 +25,33 @@ This repository is the official PyTorch implementation of **SPEED**, accepted to
 - **2026-07**: SPEED has been accepted to ACM MM 2026.
 - Code, project page, checkpoints, and paper links will be updated progressively.
 
+## Introduction
+
+Diffusion models have recently shown strong potential for Video Frame Interpolation (VFI), especially under complex and non-linear motion. However, existing diffusion-based VFI methods are mostly latent diffusion models, which introduce two practical bottlenecks: compression into a latent space loses fine-grained image details, and iterative sampling causes high inference latency and memory usage.
+
+**SPEED** addresses these limitations with a **one-step pixel diffusion** framework. Instead of denoising in a VAE latent space, SPEED performs interpolation directly in RGB pixel space and generates the target intermediate frame with a single forward pass. This design avoids VAE-induced blur and detail loss while making diffusion-based VFI efficient enough for high-resolution scenarios.
+
+SPEED is built around three key components:
+
+- **Progressive multi-stage architecture**: a macroscopic-to-microscopic Transformer design with dynamic patch scaling from `64 -> 32 -> 16`, enabling the model to first capture global motion, then refine structure, and finally synthesize fine-grained appearance.
+- **Noise-Update-Only (NUO) Attention**: an asymmetric attention mechanism where only noisy target-frame tokens are updated while clean condition-frame tokens remain uncorrupted. It provides global spatio-temporal context while reducing attention complexity from `O(9N^2)` to `O(3N^2)`.
+- **Drift-aware Timestep Sampling (DTS)** with direct clean-frame prediction: a training curriculum that shifts from full trajectory learning toward the one-step boundary condition, enabling high-quality one-step inference in pixel space.
+
 ## Pipeline
 
 <div align="center">
   <img src="assets/pipeline.png" alt="SPEED pipeline" width="95%">
 </div>
 
-SPEED is a video frame interpolation framework based on PyTorch, Accelerate, and xFormers. Given two endpoint frames, SPEED predicts the intermediate frame with a pyramid DiT-style architecture and evaluates results with PSNR, SSIM, LPIPS, FloLPIPS, and L1.
+Given the starting frame `I0`, ending frame `I1`, Gaussian noise, and timestep `t=1`, SPEED directly predicts the clean intermediate frame in one step. The three-stage pixel-space Transformer progressively transforms motion-aware representations into detail-refined intermediate frames.
+
+## Main Results
+
+SPEED achieves state-of-the-art perceptual quality while substantially reducing the cost of diffusion-based interpolation:
+
+- On **SNU-FILM Extreme**, SPEED reaches `0.0880` LPIPS and `0.1447` FloLPIPS, improving over EDEN by `8.8%` and `10.8%`, respectively.
+- On **DAVIS**, SPEED generates one intermediate frame in `36.6 ms` with `2.268 GB` peak memory on an NVIDIA A100-80G GPU, reducing inference time by `58.3%` compared with EDEN.
+- On **XTest4K**, SPEED achieves `0.1070` LPIPS and `0.1484` FloLPIPS with `7.210 GB` peak memory, avoiding the severe detail degradation and memory bottlenecks of latent diffusion baselines.
 
 ## Visual Results
 
@@ -54,6 +74,8 @@ assets/
 ├── visualization.png
 └── appendix_visualization.png
 ```
+
+The project page uses the same file names under `static/images/`.
 
 ## Quick Start
 
@@ -165,7 +187,7 @@ The current code expects checkpoints saved as:
 
 ## Inference
 
-SPEED supports image-pair interpolation and video interpolation.
+SPEED performs one-step interpolation. It supports image-pair interpolation and video interpolation.
 
 ### Image Pair
 
@@ -299,7 +321,7 @@ Training and evaluation create timestamped experiment directories:
 
 ```bibtex
 @inproceedings{zhang2026speed,
-  title={SPEED},
+  title={SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation},
   author={Zhang, Zihao and Zhao, Haoyu and Yang, Siqian and Wu, Yidi and Jiang, Yudong and Wu, Zuxuan},
   booktitle={Proceedings of the ACM International Conference on Multimedia},
   year={2026}
