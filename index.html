@@ -89,12 +89,6 @@
       </div>
     </div>
 
-    <div class="container is-max-widescreen">
-      <div class="publication-hero-image" data-placeholder="Missing static/images/visualization.svg">
-        <img src="./static/images/visualization.svg"
-             alt="Visual comparison of SPEED with previous video frame interpolation methods">
-      </div>
-    </div>
   </div>
 </section>
 
@@ -156,18 +150,55 @@
   </div>
 </section>
 
-<section class="section">
-  <div class="container is-max-widescreen">
+<section class="section visualization-results-section">
+  <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
       <div class="column is-four-fifths">
-        <h2 class="title is-3">Additional Results</h2>
+        <h2 class="title is-3">Visualization Results</h2>
       </div>
     </div>
-    <div class="publication-image wide-image" data-placeholder="Missing static/images/appendix_visualization.svg">
-      <img src="./static/images/appendix_visualization.svg"
-           alt="Additional qualitative results of SPEED">
-    </div>
   </div>
+
+  <section class="hero is-light is-small">
+    <div class="hero-body">
+      <div class="container is-max-widescreen">
+        <div class="results-carousel-wrapper">
+          <button class="carousel-control carousel-control-left"
+                  type="button"
+                  aria-label="Show previous visualization result"
+                  data-carousel-prev>
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+
+          <div id="results-carousel" class="carousel results-carousel" data-carousel>
+            <div class="carousel-item publication-image wide-image"
+                 data-placeholder="Missing static/images/visualization.svg">
+              <img src="./static/images/visualization.svg"
+                   alt="Visual comparison of SPEED with previous video frame interpolation methods">
+            </div>
+
+            <div class="carousel-item publication-image wide-image"
+                 data-placeholder="Missing static/images/appendix_visualization.svg">
+              <img src="./static/images/appendix_visualization.svg"
+                   alt="Additional qualitative results of SPEED">
+            </div>
+          </div>
+
+          <button class="carousel-control carousel-control-right"
+                  type="button"
+                  aria-label="Show next visualization result"
+                  data-carousel-next>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="carousel-dots" aria-label="Visualization result selector">
+          <button class="carousel-dot is-active" type="button" aria-label="Show visualization result 1"></button>
+          <button class="carousel-dot" type="button" aria-label="Show visualization result 2"></button>
+        </div>
+      </div>
+    </div>
+  </section>
 </section>
 
 <section class="section result-section">
