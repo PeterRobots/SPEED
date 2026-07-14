@@ -2,177 +2,213 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="SPEED is a one-step pixel diffusion framework for high-quality video frame interpolation, accepted to ACM MM 2026.">
-  <meta name="keywords" content="SPEED, one-step pixel diffusion, video frame interpolation, ACM MM 2026, diffusion, DiT">
+  <meta name="description"
+        content="SPEED is a one-step pixel diffusion framework for high-quality video frame interpolation, accepted to ACM MM 2026.">
+  <meta name="keywords"
+        content="SPEED, video frame interpolation, one-step diffusion, pixel diffusion, ACM MM 2026">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
   <link rel="stylesheet" href="./static/css/index.css">
 </head>
 <body>
-  <header class="hero">
-    <nav class="nav">
-      <a href="#top" class="nav-brand">SPEED</a>
-      <div class="nav-links">
-        <a href="#abstract">Abstract</a>
-        <a href="#pipeline">Pipeline</a>
-        <a href="#results">Results</a>
-        <a href="#citation">BibTeX</a>
-      </div>
-    </nav>
 
-    <main id="top" class="hero-content">
-      <p class="venue">ACM MM 2026</p>
-      <h1>SPEED</h1>
-      <p class="subtitle">One-Step Pixel Diffusion for High-quality Video Frame Interpolation</p>
+<section class="hero publication-header">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">
+            SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation
+          </h1>
 
-      <div class="authors">
-        <span>Zihao Zhang<sup>1,2,*</sup></span>
-        <span>Haoyu Zhao<sup>1,*</sup></span>
-        <span>Siqian Yang<sup>2</sup></span>
-        <span>Yidi Wu<sup>2</sup></span>
-        <span>Yudong Jiang<sup>2</sup></span>
-        <span>Zuxuan Wu<sup>1,&dagger;</sup></span>
-      </div>
+          <div class="publication-venue-container">
+            <p class="subtitle is-4 publication-venue">ACM MM 2026</p>
+          </div>
 
-      <div class="affiliations">
-        <p><sup>1</sup>Fudan University &nbsp;&nbsp; <sup>2</sup>Bilibili Inc</p>
-        <p><sup>*</sup>Equal contribution. &nbsp; <sup>&dagger;</sup>Corresponding author.</p>
-      </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">Zihao Zhang<sup>1,2,*</sup>,</span>
+            <span class="author-block">Haoyu Zhao<sup>1,*</sup>,</span>
+            <span class="author-block">Siqian Yang<sup>2</sup>,</span>
+            <span class="author-block">Yidi Wu<sup>2</sup>,</span>
+            <span class="author-block">Yudong Jiang<sup>2</sup>,</span>
+            <span class="author-block">Zuxuan Wu<sup>1,&dagger;</sup></span>
+          </div>
 
-      <div class="buttons">
-        <a class="button disabled" href="#" aria-disabled="true">Paper Coming Soon</a>
-        <a class="button disabled" href="#" aria-disabled="true">Model Coming Soon</a>
-        <a class="button primary" href="https://github.com/bbldCVer/SPEED">Code</a>
-      </div>
+          <div class="is-size-5 publication-authors publication-affiliations">
+            <span class="author-block"><sup>1</sup>Fudan University</span>
+            <span class="author-block"><sup>2</sup>Bilibili Inc</span>
+            <p class="author-note">
+              <sup>*</sup>Equal contribution. <sup>&dagger;</sup>Corresponding author.
+            </p>
+          </div>
 
-      <figure class="figure hero-figure" data-placeholder="Add static/images/visualization.svg">
-        <img src="./static/images/visualization.svg" alt="SPEED visual results">
-      </figure>
-    </main>
-  </header>
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="#"
+                   aria-disabled="true"
+                   class="external-link button is-normal is-rounded is-dark is-disabled">
+                  <span class="icon">
+                    <i class="fa-solid fa-file-pdf"></i>
+                  </span>
+                  <span>Paper Coming Soon</span>
+                </a>
+              </span>
 
-  <section id="abstract" class="section">
-    <div class="container narrow">
-      <h2>Abstract</h2>
-      <p>
-        Diffusion models have recently achieved strong results in Video Frame Interpolation (VFI), but
-        existing latent diffusion approaches still lose fine-grained details during VAE encoding/decoding and
-        suffer from expensive multi-step sampling. SPEED addresses both limitations with a one-step pixel
-        diffusion framework: it performs interpolation directly in RGB pixel space and generates the
-        intermediate frame with a single forward pass.
-      </p>
-      <p>
-        SPEED combines a progressive multi-stage Transformer, Noise-Update-Only Attention, and
-        Drift-aware Timestep Sampling. The model first captures global motion with large patches, then
-        refines structural alignment, and finally synthesizes high-frequency textures with fine-grained
-        patches. This design preserves sharp details while improving inference speed and memory efficiency.
-      </p>
-    </div>
-  </section>
+              <span class="link-block">
+                <a href="#"
+                   aria-disabled="true"
+                   class="external-link button is-normal is-rounded is-dark is-disabled">
+                  <span class="icon">
+                    <i class="fa-solid fa-cube"></i>
+                  </span>
+                  <span>Model Coming Soon</span>
+                </a>
+              </span>
 
-  <section class="section">
-    <div class="container">
-      <h2>Highlights</h2>
-      <div class="cards">
-        <article class="card">
-          <h3>Pixel-Space Diffusion</h3>
-          <p>Performs VFI directly in RGB pixel space, avoiding the VAE-induced detail loss of latent diffusion baselines.</p>
-        </article>
-        <article class="card">
-          <h3>One-Step Inference</h3>
-          <p>Bypasses iterative denoising and predicts the intermediate frame from Gaussian noise in a single model forward pass.</p>
-        </article>
-        <article class="card">
-          <h3>Efficient Global Attention</h3>
-          <p>NUO Attention updates only noisy target tokens while preserving clean condition-frame semantics and reducing attention cost.</p>
-        </article>
+              <span class="link-block">
+                <a href="https://github.com/bbldCVer/SPEED"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fa-brands fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
 
-  <section id="pipeline" class="section alt">
-    <div class="container">
-      <h2>Pipeline</h2>
-      <figure class="figure" data-placeholder="Add static/images/pipeline.svg">
-        <img src="./static/images/pipeline.svg" alt="SPEED pipeline">
-      </figure>
-      <p class="caption">
-        SPEED uses endpoint frames as conditions and predicts the intermediate RGB frame with a progressive
-        pixel-space Transformer. Patch sizes decrease from 64 to 32 and then 16, following a
-        macroscopic-to-microscopic generation process.
-      </p>
+    <div class="container is-max-widescreen">
+      <div class="publication-hero-image" data-placeholder="Missing static/images/visualization.svg">
+        <img src="./static/images/visualization.svg"
+             alt="Visual comparison of SPEED with previous video frame interpolation methods">
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="section">
-    <div class="container narrow">
-      <h2>Performance</h2>
-      <p>
-        SPEED establishes a new state of the art on DAVIS, SNU-FILM, and XTest4K while reducing the
-        runtime and memory cost of diffusion-based VFI. On SNU-FILM Extreme, SPEED improves LPIPS by
-        8.8% over EDEN. On XTest4K, it achieves 0.1070 LPIPS and 0.1484 FloLPIPS while maintaining low
-        memory usage for 4K interpolation.
-      </p>
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Diffusion models have recently achieved strong results in Video Frame Interpolation (VFI), but
+            existing latent diffusion approaches still lose fine-grained details during VAE encoding and decoding
+            and suffer from expensive multi-step sampling. SPEED addresses both limitations with a one-step pixel
+            diffusion framework: it performs interpolation directly in RGB pixel space and generates the
+            intermediate frame with a single forward pass.
+          </p>
+          <p>
+            SPEED combines a progressive multi-stage Transformer, Noise-Update-Only Attention, and Drift-aware
+            Timestep Sampling. The model first captures global motion with large patches, then refines structural
+            alignment, and finally synthesizes high-frequency textures with fine-grained patches. This design
+            preserves sharp details while improving inference speed and memory efficiency.
+          </p>
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="results" class="section">
-    <div class="container">
-      <h2>Additional Results</h2>
-      <figure class="figure" data-placeholder="Add static/images/appendix_visualization.svg">
-        <img src="./static/images/appendix_visualization.svg" alt="SPEED additional visual results">
-      </figure>
+<section class="section pipeline-section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Pipeline</h2>
+        <div class="publication-image" data-placeholder="Missing static/images/pipeline.svg">
+          <img src="./static/images/pipeline.svg" alt="Pipeline of SPEED">
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="section alt">
-    <div class="container">
-      <h2>High-Resolution Comparison</h2>
-      <figure class="figure" data-placeholder="Add static/images/high_res_visualization.svg">
-        <img src="./static/images/high_res_visualization.svg" alt="SPEED high-resolution visual comparison">
-      </figure>
+    <div class="columns is-centered">
+      <div class="column is-four-fifths">
+        <div class="content has-text-justified">
+          <p>
+            We introduce SPEED, a one-step pixel diffusion framework for high-quality video frame interpolation.
+            Unlike previous latent diffusion VFI methods, SPEED performs denoising directly in the RGB pixel
+            space, avoiding VAE-induced detail loss while bypassing expensive iterative sampling.
+          </p>
+          <p>
+            Our framework adopts a progressive multi-stage Transformer with dynamic patch scaling from
+            <code>64 -&gt; 32 -&gt; 16</code>, enabling a macroscopic-to-microscopic generation process that first
+            captures large-scale motion, then refines structural alignment, and finally synthesizes fine-grained
+            textures. We further introduce Noise-Update-Only (NUO) Attention to update only the noisy target-frame
+            tokens while preserving clean condition-frame semantics, and Drift-aware Timestep Sampling (DTS) with
+            direct clean-frame prediction to enable high-quality one-step inference.
+          </p>
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="section">
-    <div class="container narrow">
-      <h2>Code Release</h2>
-      <p>
-        The repository provides scripts for model training, evaluation, and inference. Since SPEED is trained
-        for one-step generation, image-pair inference and video interpolation through <code>inference.py</code>
-        require only one forward pass for each intermediate frame. Video interpolation can run in
-        <code>parallel</code> mode for higher throughput or <code>sequential</code> mode for lower memory usage.
-      </p>
-      <pre><code>python inference.py \
-  --config configs/eval_config.yaml \
-  --pretrained_path checkpoints/speed.pt \
-  --frame0 examples/frame_0.png \
-  --frame1 examples/frame_1.png \
-  --output interpolation_outputs/interpolated.png \
-  --precision bf16</code></pre>
+<section class="section">
+  <div class="container is-max-widescreen">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Additional Results</h2>
+      </div>
     </div>
-  </section>
+    <div class="publication-image wide-image" data-placeholder="Missing static/images/appendix_visualization.svg">
+      <img src="./static/images/appendix_visualization.svg"
+           alt="Additional qualitative results of SPEED">
+    </div>
+  </div>
+</section>
 
-  <section id="citation" class="section alt">
-    <div class="container narrow">
-      <h2>BibTeX</h2>
-      <pre><code>@inproceedings{zhang2026speed,
-  title={SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation},
-  author={Zhang, Zihao and Zhao, Haoyu and Yang, Siqian and Wu, Yidi and Jiang, Yudong and Wu, Zuxuan},
-  booktitle={Proceedings of the ACM International Conference on Multimedia},
-  year={2026}
+<section class="section result-section">
+  <div class="container is-max-widescreen">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">High-Resolution Comparison</h2>
+      </div>
+    </div>
+    <div class="publication-image wide-image" data-placeholder="Missing static/images/high_res_visualization.svg">
+      <img src="./static/images/high_res_visualization.svg"
+           alt="High-resolution visual comparison of SPEED">
+    </div>
+  </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@inproceedings{zhang2026speed,
+  title     = {SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation},
+  author    = {Zhang, Zihao and Zhao, Haoyu and Yang, Siqian and Wu, Yidi and Jiang, Yudong and Wu, Zuxuan},
+  booktitle = {Proceedings of the ACM International Conference on Multimedia},
+  year      = {2026},
 }</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        Template adapted from
+        <a href="https://github.com/bbldCVer/EDEN/tree/pages">EDEN</a>
+        and
+        <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.
+      </p>
     </div>
-  </section>
+  </div>
+</footer>
 
-  <footer class="footer">
-    <p>SPEED | ACM MM 2026</p>
-  </footer>
-
-  <script src="./static/js/index.js"></script>
+<script src="./static/js/index.js"></script>
 </body>
 </html>

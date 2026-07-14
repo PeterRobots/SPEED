@@ -1,5 +1,7 @@
-document.querySelectorAll(".figure img").forEach((image) => {
+document
+  .querySelectorAll(".publication-hero-image img, .publication-image img")
+  .forEach((image) => {
   image.addEventListener("error", () => {
-    image.closest(".figure").classList.add("is-missing");
+    image.closest(".publication-hero-image, .publication-image").classList.add("is-missing");
   });
 });
