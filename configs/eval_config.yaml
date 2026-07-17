@@ -1,31 +1,18 @@
-# accelerate args
-global_seed: 0
-mixed_precision: "bf16"
-experiment_name: pro_freq_large_res_20260115_080802
-# model args
-model_name: SPEED
-pretrained_path: /mnt/group/zhangzihao/outputs/FreqVFI/pro_freq_large_res/20260115_080802/checkpoints/best.pt
-model_args:
-  patch_sizes: [64, 32, 16]
-  depths: [2, 6, 4]
-  hidden_dim: 768
-  head_dim: 64
+defaults:
+  - base_config.yaml
+
+experiment_name: SPEED_eval
+pretrained_path: ckpts/speed.pt
+
 # dataset args
-dataset_name: "DAVIS"
+dataset_name: DAVIS
 dataset_args:
   DAVIS:
-    data_dir: /mnt/group/zhangzihao/datasets/vfi_datasets/DAVIS
-    height: 480
-    width: 854
-    is_val: true
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/DAVIS
   SNU_FILM:
-    data_dir: /mnt/group/zhangzihao/datasets/vfi_datasets/snu_film
-    mode: extreme
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/snu_film
   XTest:
-    data_dir: /mnt/group/zhangzihao/datasets/vfi_datasets/X4K1000FPS/test
-    res: 2k
-dataloader:
-  batch_size: 1
-  num_workers: 8
-output_dir: /mnt/group/zhangzihao/outputs/FreqVFI
-visualize: true
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/X4K1000FPS/test
+    res: 4k
+
+visualize: false

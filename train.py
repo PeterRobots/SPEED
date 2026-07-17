@@ -1,7 +1,6 @@
 import os
 import argparse
 import warnings
-from collections import defaultdict
 from omegaconf import OmegaConf
 
 import torch
@@ -11,7 +10,16 @@ from torchvision.utils import save_image
 from accelerate.utils import set_seed
 from accelerate.logging import get_logger
 
+from src.config import load_config as load_yaml_config
 from src.utils import CalMetrics, Trainer
+from src.utils.eval_utils import (
+    average_metric_results,
+    compute_metrics,
+    denormalize_frame,
+    format_metric_results,
+    init_metric_results,
+    update_metric_results,
+)
 from src.utils.loss import LossMeter
 from src.utils.setup_utils import setup_accelerator, setup_experiment_dirs
 from src.utils.builder import build_dataloaders, build_model_and_optim
@@ -35,7 +43,7 @@ def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/train_config.yaml")
     args = parser.parse_args()
-    return OmegaConf.load(args.config)
+    return load_yaml_config(args.config)
 
 
 def run_validation(
@@ -46,29 +54,22 @@ def run_validation(
     accelerator,
     step,
     exp_dir,
+    max_steps=None,
 ):
     logger.info("Validating ...")
     model.eval()
     unwrapped_model = accelerator.unwrap_model(model)
-    results = defaultdict(list)
+    results = init_metric_results()
 
     with torch.no_grad():
         for i, val_batch in enumerate(val_loader):
+            if max_steps is not None and i >= max_steps:
+                break
             pred, gt = trainer.validate_one_step(unwrapped_model, val_batch)
-            pred = (pred / 2 + 0.5).clamp(0, 1)
-            gt = (gt / 2 + 0.5).clamp(0, 1)
-
-            metrics_step = {
-                "PSNR": metrics.cal_psnr(pred, gt),
-                "SSIM": metrics.cal_ssim(pred, gt),
-                "LPIPS": metrics.cal_lpips(pred, gt),
-                "FloLPIPS": metrics.cal_flolpips(pred, gt, val_batch[:, 0] / 255., val_batch[:, 1] / 255.),
-                "L1": torch.mean(torch.abs(pred - gt), dim=(1, 2, 3)),
-            }
-
-            for k, v in metrics_step.items():
-                gathered = accelerator.gather_for_metrics(v)
-                results[k].extend(gathered.cpu().tolist())
+            pred = denormalize_frame(pred)
+            gt = denormalize_frame(gt)
+            metrics_step = compute_metrics(metrics, pred, gt, val_batch[:, 0] / 255., val_batch[:, 1] / 255.)
+            update_metric_results(results, metrics_step, accelerator)
 
             if accelerator.is_main_process and i < 2:
                 save_dir = f"{exp_dir}/validation_results/steps{step:07d}"
@@ -77,20 +78,13 @@ def run_validation(
 
     model.train()
 
-    final_results = {k: sum(v) / len(v) for k, v in results.items()}
-
-    format_results = (
-        f"PSNR: {final_results['PSNR']:.4f}, "
-        f"SSIM: {final_results['SSIM']:.4f}, "
-        f"LPIPS: {final_results['LPIPS']:.4f}, "
-        f"FloLPIPS: {final_results['FloLPIPS']:.4f}, "
-        f"L1: {final_results['L1']:.4f}"
-    )
+    final_results = average_metric_results(results)
+    format_results = format_metric_results(final_results)
     if accelerator.is_main_process:
         with open(f"{exp_dir}/validation_results/val_results.txt", "a+", encoding="utf-8") as f:
             f.write(f"-*- Steps{step:06d} -*- {final_results}\n")
 
-    logger.info(f"Steps{step:06d} validation results on DAVIS: {format_results}")
+    logger.info(f"Steps{step:06d} validation results: {format_results}")
     return final_results
 
 
@@ -120,14 +114,22 @@ def train_loop(args, accelerator, exp_dir):
         raise ValueError(f"Unsupported validate_metric: {args.validate_metric}. Supported metrics are: {supported}")
 
     train_loader, val_loader, steps_per_epoch = build_dataloaders(args, accelerator)
-    (model, optimizer), scheduler, loss_fn = build_model_and_optim(args, accelerator, steps_per_epoch)
+    max_train_steps = args.get("max_train_steps")
+    max_validation_steps = args.get("max_validation_steps")
+    if max_train_steps is not None and max_train_steps <= 0:
+        raise ValueError("max_train_steps must be positive when set")
+    if max_validation_steps is not None and max_validation_steps <= 0:
+        raise ValueError("max_validation_steps must be positive when set")
+
+    planned_steps = steps_per_epoch * args.epochs
+    total_steps = min(planned_steps, max_train_steps) if max_train_steps is not None else planned_steps
+    (model, optimizer), scheduler, loss_fn = build_model_and_optim(args, accelerator, total_steps)
 
     trainer = Trainer(loss_fn, **args.trainer_args, device=accelerator.device)
     metrics = CalMetrics(accelerator.device)
     meter = LossMeter()
 
     best_metric = args.init_val_metric_value
-    total_steps = steps_per_epoch * args.epochs
     logger.info(f"Training for {args.epochs} epochs ({total_steps} steps)...")
     step = 0
 
@@ -137,6 +139,8 @@ def train_loop(args, accelerator, exp_dir):
 
     pbar = tqdm(range(total_steps), disable=not accelerator.is_local_main_process)
 
+    optimizer.zero_grad()
+    stop_training = False
     for epoch in range(args.epochs):
         if hasattr(train_loader.sampler, "set_epoch"):
             train_loader.sampler.set_epoch(epoch)
@@ -146,11 +150,11 @@ def train_loop(args, accelerator, exp_dir):
                 loss_data, frames = trainer.train_one_step(model, batch, step)
                 loss = loss_data["loss_total"]
 
-                optimizer.zero_grad()
                 accelerator.backward(loss)
                 optimizer.step()
                 if accelerator.sync_gradients:
                     scheduler.step()
+                optimizer.zero_grad()
 
                 meter.update("loss_total", accelerator.gather(loss).mean().item())
                 for name, values in loss_data["log_data"].items():
@@ -177,7 +181,16 @@ def train_loop(args, accelerator, exp_dir):
                     )
 
                 if step % args.val_every_steps == 0 or step == total_steps:
-                    results = run_validation(model, val_loader, trainer, metrics, accelerator, step, exp_dir)
+                    results = run_validation(
+                        model,
+                        val_loader,
+                        trainer,
+                        metrics,
+                        accelerator,
+                        step,
+                        exp_dir,
+                        max_steps=max_validation_steps,
+                    )
                     if accelerator.is_main_process and is_better(args.validate_metric, results[args.validate_metric], best_metric):
                         best_metric = results[args.validate_metric]
                         ckpt = {
@@ -188,6 +201,12 @@ def train_loop(args, accelerator, exp_dir):
                         torch.save(ckpt, f"{exp_dir}/checkpoints/best.pt")
                         logger.info(f"Saved the best {args.validate_metric}({best_metric:.4f}) checkpoints in {exp_dir}/checkpoints/best.pt")
                     accelerator.log({"best_val": best_metric, **results}, step=step)
+
+                if step >= total_steps:
+                    stop_training = True
+                    break
+        if stop_training:
+            break
 
     accelerator.end_training()
 

@@ -4,14 +4,17 @@ from .SNU_FILM import SNUFILMDataset
 from .XTest import XTestDataset
 
 
+DATASETS = {
+    "LAVIB": LAVIBDataset,
+    "DAVIS": DAVISDataset,
+    "SNU_FILM": SNUFILMDataset,
+    "XTest": XTestDataset,
+}
+
+
 def load_dataset(dataset_name, **dataset_args):
-    if dataset_name == "LAVIB":
-        return LAVIBDataset(**dataset_args)
-    elif dataset_name == "DAVIS":
-        return DAVISDataset(**dataset_args)
-    elif dataset_name == "SNU_FILM":
-        return SNUFILMDataset(**dataset_args)
-    elif dataset_name == "XTest":
-        return XTestDataset(**dataset_args)
-    else:
-        raise ValueError(f"No dataset named {dataset_name} in datasets!")
+    try:
+        dataset_cls = DATASETS[dataset_name]
+    except KeyError as exc:
+        raise ValueError(f"No dataset named {dataset_name} in datasets!") from exc
+    return dataset_cls(**dataset_args)

@@ -1,7 +1,7 @@
 # [ACM MM 2026] SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation
 
 <a href="#"><img src="https://img.shields.io/badge/Paper-Coming%20Soon-red"></a>
-<a href="#"><img src="https://img.shields.io/badge/Model-Coming%20Soon-yellow"></a>
+<a href="https://huggingface.co/zhZ524/SPEED/tree/main"><img src="https://img.shields.io/badge/Model-HuggingFace-yellow"></a>
 <a href="https://bbldCVer.github.io/SPEED/"><img src="https://img.shields.io/badge/Project-Page-Green"></a>
 <a href="https://github.com/bbldCVer/SPEED"><img src="https://img.shields.io/badge/Code-GitHub-black"></a>
 
@@ -44,21 +44,27 @@ cd SPEED
 
 ### Prepare Environment
 
-We recommend Python 3.10 and a CUDA GPU environment. SPEED depends on `xformers`, `cupy`, and the CUDA correlation kernel used by FloLPIPS/PWCNet.
+We recommend Python 3.10 and a CUDA GPU environment. SPEED depends on `xformers`, `cupy`, and the CUDA correlation kernel used by FloLPIPS/PWCNet. Choose the requirements file that matches the CUDA version supported by your NVIDIA driver:
 
 ```bash
 conda create -n speed python=3.10 -y
 conda activate speed
 pip install --upgrade pip
 
-# Install PyTorch wheels matching your CUDA environment.
-# CUDA 12.1 example:
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# CUDA 11.8 (tested):
+pip install -r requirements-cu118.txt
 
-pip install -r requirements.txt
+# Or, on a driver that supports CUDA 12.4:
+# pip install -r requirements-cu124.txt
 ```
 
-For CUDA 11 environments, replace `cupy-cuda12x` in `requirements.txt` with `cupy-cuda11x`. `xformers` must also match your PyTorch/CUDA version.
+If the official PyTorch wheel index is slow from mainland China, the same CUDA 11.8 wheel directory is mirrored by Aliyun. Replace the first line of `requirements-cu118.txt` with the following index URL for the installation, or pass it on the command line when installing the pinned PyTorch stack:
+
+```text
+https://mirrors.aliyun.com/pytorch-wheels/cu118
+```
+
+Do not install unpinned `torch`, `xformers`, and CuPy packages together: their latest PyPI wheels can target different PyTorch/CUDA ABIs. `requirements.txt` contains only the shared Python dependencies and is included by both CUDA-specific files. For another CUDA version, install a mutually compatible PyTorch/torchvision/xFormers stack and the corresponding `cupy-cuda11x` or `cupy-cuda12x`, then install `requirements.txt`.
 
 Before running training, evaluation, or inference, set:
 
@@ -67,6 +73,12 @@ export PYTHONPATH="${PWD}:${PWD}/src/utils:${PYTHONPATH}"
 ```
 
 The first run may download pretrained AlexNet, VGG, PWCNet, LPIPS, or DISTS-related weights. For offline environments, prepare the corresponding PyTorch and torch hub caches in advance.
+
+The training and evaluation configs inherit shared defaults from `configs/base_config.yaml`. Dataset paths default to `datasets/...`; set `VFI_DATASETS_ROOT` to override the common root without editing tracked configs. You can still edit `configs/train_config.yaml` and `configs/eval_config.yaml` for experiment-specific checkpoint paths, batch sizes, and output directories.
+
+```bash
+export VFI_DATASETS_ROOT=/path/to/vfi_datasets
+```
 
 ## Prepare Datasets
 
@@ -128,10 +140,10 @@ Notes:
 
 ## Download Checkpoints
 
-Pretrained checkpoints will be released soon. After downloading, place them under:
+Pretrained checkpoints are available on [Hugging Face](https://huggingface.co/zhZ524/SPEED/tree/main). Download `speed.pt` and place it under:
 
 ```text
-checkpoints/
+ckpts/
 └── speed.pt
 ```
 
@@ -140,6 +152,8 @@ The current code expects checkpoints saved as:
 ```python
 {"model": model_state_dict, ...}
 ```
+
+Training checkpoints may also contain serialized optimizer/config metadata. As with all pickle-based PyTorch checkpoints, only load files from sources you trust.
 
 ## Inference
 
@@ -151,7 +165,7 @@ SPEED performs one-step interpolation. It supports image-pair interpolation and 
 export PYTHONPATH="${PWD}:${PWD}/src/utils:${PYTHONPATH}"
 python inference.py \
   --config configs/eval_config.yaml \
-  --pretrained_path checkpoints/speed.pt \
+  --pretrained_path ckpts/speed.pt \
   --frame0 examples/frame_0.png \
   --frame1 examples/frame_1.png \
   --output interpolation_outputs/interpolated.png \
@@ -166,7 +180,7 @@ Parallel video interpolation batches adjacent frame pairs for higher throughput:
 ```bash
 python inference.py \
   --config configs/eval_config.yaml \
-  --pretrained_path checkpoints/speed.pt \
+  --pretrained_path ckpts/speed.pt \
   --input_video examples/input.mp4 \
   --output interpolation_outputs/interpolated_parallel.mp4 \
   --video_mode parallel \
@@ -179,7 +193,7 @@ Sequential video interpolation processes one adjacent frame pair at a time and i
 ```bash
 python inference.py \
   --config configs/eval_config.yaml \
-  --pretrained_path checkpoints/speed.pt \
+  --pretrained_path ckpts/speed.pt \
   --input_video examples/input.mp4 \
   --output interpolation_outputs/interpolated_sequential.mp4 \
   --video_mode sequential \
@@ -188,12 +202,29 @@ python inference.py \
 
 By default, the output FPS is doubled to preserve the original video duration after inserting intermediate frames. Use `--keep_fps` to keep the input FPS, or `--fps 60` to set a custom output FPS.
 
+## Time and Memory Benchmark
+
+`test_time_mem.py` benchmarks repeated forward passes on randomly initialized tensors with a specified resolution. If `--pretrained_path` is omitted, the model is randomly initialized; pass a checkpoint path to benchmark a trained model.
+
+```bash
+python test_time_mem.py \
+  --config configs/eval_config.yaml \
+  --pretrained_path ckpts/speed.pt \
+  --height 1080 \
+  --width 1920 \
+  --batch_size 1 \
+  --warmup 10 \
+  --runs 100 \
+  --precision bf16 \
+  --output_json benchmark_1080p.json
+```
+
 ## Evaluation
 
 Modify `configs/eval_config.yaml` before evaluation:
 
 ```yaml
-pretrained_path: checkpoints/speed.pt
+pretrained_path: ckpts/speed.pt
 dataset_name: "DAVIS"
 dataset_args:
   DAVIS:
@@ -241,21 +272,41 @@ export PYTHONPATH="${PWD}:${PWD}/src/utils:${PYTHONPATH}"
 python train.py --config configs/train_config.yaml
 ```
 
+For a one-step end-to-end smoke test before a long run, use the included smoke config. It executes the real model, perceptual losses, backward pass, optimizer update, one validation batch, and checkpoint writing:
+
+```bash
+SWANLAB_MODE=local python train.py --config configs/train_smoke_config.yaml
+```
+
 Multi-GPU training:
 
 ```bash
 accelerate launch --num_processes 8 train.py --config configs/train_config.yaml
 ```
 
-Multi-node training can use `configs/accelerate_config.yaml`. Update `num_machines`, `num_processes`, `machine_rank`, `main_process_ip`, and `main_process_port` according to your cluster.
+The helper script wraps the same setup and exports the required `PYTHONPATH`. The checked-in `configs/accelerate_config.yaml` is a safe single-GPU default; provide a custom Accelerate config when launching multi-GPU training through this helper.
+
+```bash
+bash scripts/train.sh
+```
+
+Common overrides:
+
+```bash
+CONFIG=configs/train_config.yaml bash scripts/train.sh
+USE_ACCELERATE=0 bash scripts/train.sh
+SWANLAB_API_KEY=<your_key> bash scripts/train.sh
+```
+
+For multi-node training, `scripts/train.sh` also supports PET-style environment variables: `PET_NNODES`, `PET_NPROC_PER_NODE`, `PET_MASTER_ADDR`, `PET_MASTER_PORT`, and `PET_NODE_RANK`. Otherwise, edit `configs/accelerate_config.yaml` for your local multi-GPU machine.
 
 Training logs use SwanLab. For online logging:
 
 ```bash
-swanlab login -k "Your SwanLab Key"
+swanlab login -k "<your_key>"
 ```
 
-If SwanLab is unreachable, the code falls back to local mode.
+If SwanLab is unreachable, the code falls back to local mode. When using `scripts/train.sh`, setting `SWANLAB_API_KEY` logs in before training starts.
 
 ## Output Structure
 

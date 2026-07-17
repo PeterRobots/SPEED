@@ -7,6 +7,7 @@ import diffusers
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import get_logger
+from accelerate.utils import broadcast_object_list
 from swanlab.integration.accelerate import SwanLabTracker
 
 logger = get_logger(__name__, log_level="INFO")
@@ -22,10 +23,13 @@ def is_http_reachable(url="https://swanlab.cn/", timeout=3):
 
 def setup_accelerator(args, is_eval=False):
     if not is_eval:
-        if is_http_reachable():
-            tracker = SwanLabTracker(args.tracker_project_name, experiment_name=args.experiment_name)
-        else:
-            tracker = SwanLabTracker(args.tracker_project_name, mode="local", experiment_name=args.experiment_name)
+        requested_mode = os.environ.get("SWANLAB_MODE")
+        tracker_mode = requested_mode or (None if is_http_reachable() else "local")
+        tracker = SwanLabTracker(
+            project=args.tracker_project_name,
+            experiment_name=args.experiment_name,
+            mode=tracker_mode,
+        )
         accelerator = Accelerator(
             gradient_accumulation_steps=args.gradient_accumulation_steps,
             mixed_precision=args.mixed_precision,
@@ -46,8 +50,12 @@ def setup_accelerator(args, is_eval=False):
 
 def setup_experiment_dirs(args, accelerator):
     output_root = f"{args.output_dir}/{args.experiment_name}"
-    os.makedirs(output_root, exist_ok=True)
-    exp_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if accelerator.is_main_process:
+        os.makedirs(output_root, exist_ok=True)
+        exp_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    else:
+        exp_id = None
+    exp_id = broadcast_object_list([exp_id])[0]
     exp_dir = f"{output_root}/{exp_id}"
 
     if accelerator.is_main_process:
@@ -61,4 +69,5 @@ def setup_experiment_dirs(args, accelerator):
             handlers=[logging.StreamHandler(), logging.FileHandler(f"{exp_dir}/log.txt")],
         )
         logger.info(f"Experiment dir: {exp_dir}")
+    accelerator.wait_for_everyone()
     return exp_dir

@@ -1,32 +1,24 @@
-# Core deep learning stack.
-# Install torch/torchvision wheels that match your CUDA driver if the default
-# PyPI wheels are not suitable for your machine.
-torch
-torchvision
-xformers
+# Install the CUDA stack first with one of the versioned files documented in
+# README.md, then install these shared dependencies.
 
 # Training, distributed execution, logging, and config.
-accelerate
-diffusers
-transformers
-omegaconf
-swanlab
+accelerate>=1.9,<2
+diffusers>=0.35,<0.40
+transformers>=4.56,<5
+omegaconf>=2.3,<2.4
+swanlab[dashboard]>=0.7,<1
 tqdm
 requests
 einops
 
 # Data loading and image/video I/O.
-numpy
+numpy<2
 pandas
-opencv-python
+opencv-python<5
 Pillow
 av
-scikit-image
+scikit-image<0.26
 
 # Perceptual losses and metrics.
-lpips
-DISTS-pytorch
-
-# FloLPIPS/PWCNet uses a CuPy CUDA correlation kernel.
-# For CUDA 11 environments, replace this with cupy-cuda11x.
-cupy-cuda12x
+lpips==0.1.4
+DISTS-pytorch==0.1

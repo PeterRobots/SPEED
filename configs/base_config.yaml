@@ -1,0 +1,55 @@
+# Shared SPEED defaults used by training, evaluation, inference, and benchmarks.
+global_seed: 0
+mixed_precision: "bf16"
+
+model_name: SPEED
+pretrained_path: null
+model_args:
+  patch_sizes: [64, 32, 16]
+  depths: [2, 6, 4]
+  hidden_dim: 768
+  head_dim: 64
+
+trainer_args:
+  visual_results_num: 4  # This num must be smaller than batch_size.
+  base_resolution: 384
+  small_method: "crop"  # "resize" or "crop"
+  eval_patch_size: 2560
+  # DTS modes: "step_shift" selects segmented scheduling; "smooth_shift" selects smooth scheduling.
+  dts_mode: "step_shift"
+  dts_shift_schedule:
+    - [0, 1.0]
+    - [5000, 3.0]
+    - [10000, 5.0]
+    - [20000, 7.0]
+    - [50000, 10.0]
+  dts_pure_noise_step: 100000
+  dts_progress_steps: 100000  # Used by smooth DTS to compute p = train_step / dts_progress_steps.
+  dts_max_p: 0.9999
+  dts_smooth_shift: 1.0  # Shift used by smooth DTS.
+
+dataset_args:
+  LAVIB:
+    split_name: "train"
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/LAVIB
+    height: 1296
+    width: 1296
+    dur_list: [3, 5, 7]
+    dur_weights: [1.0, 0.0, 0.0]
+  DAVIS:
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/DAVIS
+    height: 480
+    width: 854
+    is_val: true
+  SNU_FILM:
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/snu_film
+    mode: extreme
+  XTest:
+    data_dir: ${oc.env:VFI_DATASETS_ROOT,datasets}/X4K1000FPS/test
+    res: 2k
+
+dataloader:
+  batch_size: 1
+  num_workers: 8
+
+output_dir: outputs

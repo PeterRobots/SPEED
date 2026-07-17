@@ -62,7 +62,7 @@ class RopeEmbedder(nn.Module):
             self.neg_freqs = self.neg_freqs.to(device)
 
         frame, height, width = fhw
-        rope_key = f"{frame}_{height}_{width}"
+        rope_key = (frame, height, width, str(device))
         if rope_key not in self.rope_cache:
             vid_freqs = []
             freqs_pos = self.pos_freqs.split([x // 2 for x in self.axes_dim], dim=1)

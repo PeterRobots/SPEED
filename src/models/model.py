@@ -9,10 +9,11 @@ from .modules.block import SpeedBlock, FinalLayer
 
 def pad_to_divisor(x, divisor):
     b, c, h, w = x.shape
-    pad_h =  (-h) % divisor
+    pad_h = (-h) % divisor
     pad_w = (-w) % divisor
     if pad_h > 0 or pad_w > 0:
-        x = F.pad(x, (0, pad_w, 0, pad_h), mode="reflect")
+        pad_mode = "reflect" if pad_h < h and pad_w < w else "replicate"
+        x = F.pad(x, (0, pad_w, 0, pad_h), mode=pad_mode)
     return x, (h, w)
 
 
@@ -49,6 +50,11 @@ class SpeedStage(nn.Module):
 class SpeedDiT(nn.Module):
     def __init__(self, hidden_dim=768, head_dim=64, depths=(2, 6, 4), patch_sizes=(64, 32, 16)):
         super().__init__()
+        if len(depths) != 3 or len(patch_sizes) != 3:
+            raise ValueError("SPEED expects exactly three depths and three patch sizes.")
+        if any(patch_sizes[i] % patch_sizes[i + 1] != 0 for i in range(len(patch_sizes) - 1)):
+            raise ValueError("Each patch size must be divisible by the next smaller patch size.")
+
         self.patch_sizes = patch_sizes
         self.scales = [patch_sizes[i] // patch_sizes[i+1] for i in range(len(patch_sizes) - 1)]
 

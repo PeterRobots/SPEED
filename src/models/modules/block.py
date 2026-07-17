@@ -58,6 +58,6 @@ class FinalLayer(nn.Module):
         )
 
     def forward(self, tokens, c):
-        shift, scale = self.adaLN_modulation(c).chunk(2, dim=-1)
+        shift, scale = self.adaLN_modulation(c).unsqueeze(1).chunk(2, dim=-1)
         tokens = modulate(self.norm_out(tokens), shift, scale)
         return self.proj_out(tokens)

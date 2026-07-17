@@ -113,8 +113,11 @@ def denormalize_pred(pred):
 def get_device(device_arg):
     torch = require_torch()
     if device_arg:
-        return torch.device(device_arg)
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device(device_arg)
+        if device.type == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError(f"CUDA device requested but CUDA is not available: {device_arg}")
+        return device
+    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def get_autocast_dtype(precision):
@@ -126,40 +129,27 @@ def get_autocast_dtype(precision):
     return None
 
 
-def load_checkpoint_state(path):
-    torch = require_torch()
-    ckpt = torch.load(path, map_location="cpu")
-    state = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
-    if not isinstance(state, dict):
-        raise TypeError(f"Checkpoint does not contain a valid state_dict: {path}")
-
-    if state and all(key.startswith("module.") for key in state.keys()):
-        state = {key[len("module."):]: value for key, value in state.items()}
-    return state
-
-
 def build_model(config_path, pretrained_path, device, strict_load=False):
-    from omegaconf import OmegaConf
-    from src.models import load_model
+    from src.config import load_config
+    from src.runtime import build_model_from_config
 
-    args = OmegaConf.load(config_path)
+    args = load_config(config_path)
     ckpt_path = pretrained_path or args.get("pretrained_path")
     if not ckpt_path:
         raise ValueError("Checkpoint path is required. Set --pretrained_path or config.pretrained_path.")
 
-    model_name = args.get("model_name", "SPEED")
-    model_args = args.get("model_args", {})
-    model = load_model(model_name, **model_args)
-
-    state = load_checkpoint_state(ckpt_path)
-    missing, unexpected = model.load_state_dict(state, strict=strict_load)
-    if missing:
-        print(f"[WARN] Missing checkpoint keys: {len(missing)}")
-    if unexpected:
-        print(f"[WARN] Unexpected checkpoint keys: {len(unexpected)}")
-
-    model.to(device)
-    model.eval()
+    model, model_info = build_model_from_config(
+        args,
+        device=device,
+        pretrained_path=ckpt_path,
+        strict_load=strict_load,
+        require_checkpoint=True,
+        eval_mode=True,
+    )
+    if model_info["missing_keys"]:
+        print(f"[WARN] Missing checkpoint keys: {len(model_info['missing_keys'])}")
+    if model_info["unexpected_keys"]:
+        print(f"[WARN] Unexpected checkpoint keys: {len(model_info['unexpected_keys'])}")
     return model
 
 
@@ -252,6 +242,41 @@ def resolve_output_fps(input_fps, fps_override, keep_fps):
     return input_fps * 2.0
 
 
+def prepare_video_io(input_path, output_path, keep_fps, fps_override, fourcc):
+    cap = open_video_reader(input_path)
+    cv2_module = require_cv2()
+    input_fps = cap.get(cv2_module.CAP_PROP_FPS)
+    if input_fps <= 0:
+        input_fps = 25.0
+
+    frame_count = int(cap.get(cv2_module.CAP_PROP_FRAME_COUNT))
+    first = read_next_rgb_frame(cap)
+    if first is None:
+        cap.release()
+        raise ValueError(f"Input video has no frames: {input_path}")
+
+    height, width = first.shape[:2]
+    output_fps = resolve_output_fps(input_fps, fps_override, keep_fps)
+    try:
+        writer = create_video_writer(output_path, output_fps, width, height, fourcc)
+    except Exception:
+        cap.release()
+        raise
+    return cap, writer, first, max(frame_count - 1, 0)
+
+
+def iter_video_pairs(cap, first_frame):
+    prev = first_frame
+    while True:
+        cur = read_next_rgb_frame(cap)
+        if cur is None:
+            break
+        if cur.shape != prev.shape:
+            raise ValueError(f"Video frame shape changed from {prev.shape} to {cur.shape}.")
+        yield prev, cur
+        prev = cur
+
+
 def flush_video_batch(model, writer, left_frames, right_frames, device, precision):
     mids = interpolate_batch(model, left_frames, right_frames, device, precision=precision)
     for left, mid in zip(left_frames, mids):
@@ -263,39 +288,17 @@ def interpolate_video_parallel(model, input_path, output_path, device, precision
     if batch_size <= 0:
         raise ValueError("--batch_size must be greater than 0.")
 
-    cap = open_video_reader(input_path)
-    cv2_module = require_cv2()
-    input_fps = cap.get(cv2_module.CAP_PROP_FPS)
-    if input_fps <= 0:
-        input_fps = 25.0
-
-    frame_count = int(cap.get(cv2_module.CAP_PROP_FRAME_COUNT))
-    first = read_next_rgb_frame(cap)
-    if first is None:
-        cap.release()
-        raise ValueError(f"Input video has no frames: {input_path}")
-
-    height, width = first.shape[:2]
-    output_fps = resolve_output_fps(input_fps, fps_override, keep_fps)
-    writer = create_video_writer(output_path, output_fps, width, height, fourcc)
-
+    cap, writer, first, total_pairs = prepare_video_io(input_path, output_path, keep_fps, fps_override, fourcc)
     left_frames = []
     right_frames = []
-    prev = first
-    total_pairs = max(frame_count - 1, 0)
+    last_frame = first
     pbar = create_progress_bar(total=total_pairs, desc="Interpolating video pairs")
 
     try:
-        while True:
-            cur = read_next_rgb_frame(cap)
-            if cur is None:
-                break
-            if cur.shape != prev.shape:
-                raise ValueError(f"Video frame shape changed from {prev.shape} to {cur.shape}.")
-
+        for prev, cur in iter_video_pairs(cap, first):
             left_frames.append(prev)
             right_frames.append(cur)
-            prev = cur
+            last_frame = cur
 
             if len(left_frames) >= batch_size:
                 flush_video_batch(model, writer, left_frames, right_frames, device, precision)
@@ -307,7 +310,7 @@ def interpolate_video_parallel(model, input_path, output_path, device, precision
             flush_video_batch(model, writer, left_frames, right_frames, device, precision)
             pbar.update(len(left_frames))
 
-        write_rgb_video_frame(writer, prev)
+        write_rgb_video_frame(writer, last_frame)
     finally:
         pbar.close()
         cap.release()
@@ -317,41 +320,19 @@ def interpolate_video_parallel(model, input_path, output_path, device, precision
 
 
 def interpolate_video_sequential(model, input_path, output_path, device, precision, keep_fps, fps_override, fourcc):
-    cap = open_video_reader(input_path)
-    cv2_module = require_cv2()
-    input_fps = cap.get(cv2_module.CAP_PROP_FPS)
-    if input_fps <= 0:
-        input_fps = 25.0
-
-    frame_count = int(cap.get(cv2_module.CAP_PROP_FRAME_COUNT))
-    first = read_next_rgb_frame(cap)
-    if first is None:
-        cap.release()
-        raise ValueError(f"Input video has no frames: {input_path}")
-
-    height, width = first.shape[:2]
-    output_fps = resolve_output_fps(input_fps, fps_override, keep_fps)
-    writer = create_video_writer(output_path, output_fps, width, height, fourcc)
-
-    prev = first
-    total_pairs = max(frame_count - 1, 0)
+    cap, writer, first, total_pairs = prepare_video_io(input_path, output_path, keep_fps, fps_override, fourcc)
+    last_frame = first
     pbar = create_progress_bar(total=total_pairs, desc="Interpolating video pairs")
 
     try:
-        while True:
-            cur = read_next_rgb_frame(cap)
-            if cur is None:
-                break
-            if cur.shape != prev.shape:
-                raise ValueError(f"Video frame shape changed from {prev.shape} to {cur.shape}.")
-
+        for prev, cur in iter_video_pairs(cap, first):
             mid = interpolate_batch(model, [prev], [cur], device, precision=precision)[0]
             write_rgb_video_frame(writer, prev)
             write_rgb_video_frame(writer, mid)
-            prev = cur
+            last_frame = cur
             pbar.update(1)
 
-        write_rgb_video_frame(writer, prev)
+        write_rgb_video_frame(writer, last_frame)
     finally:
         pbar.close()
         cap.release()
@@ -365,6 +346,8 @@ def validate_args(args):
         raise ValueError("--frame1 is required when --frame0 is used.")
     if args.input_video and args.frame1:
         raise ValueError("--frame1 can only be used together with --frame0.")
+    if args.fps is not None and args.fps <= 0:
+        raise ValueError("--fps must be greater than 0.")
     if len(args.fourcc) != 4:
         raise ValueError("--fourcc must be exactly 4 characters, e.g. mp4v.")
 

@@ -1,6 +1,28 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
-from xformers.ops import memory_efficient_attention
+
+try:
+    from xformers.ops import memory_efficient_attention as _xformers_attention
+except (ImportError, OSError):
+    _xformers_attention = None
+
+
+def memory_efficient_attention(q, k, v, scale):
+    if _xformers_attention is not None and q.is_cuda:
+        try:
+            return _xformers_attention(q, k, v, scale=scale)
+        except NotImplementedError:
+            pass
+
+    # PyTorch SDPA uses [B, H, N, D], while xFormers uses [B, N, H, D].
+    output = F.scaled_dot_product_attention(
+        q.transpose(1, 2),
+        k.transpose(1, 2),
+        v.transpose(1, 2),
+        scale=scale,
+    )
+    return output.transpose(1, 2)
 
 
 def apply_rope(x, freqs_cis):
