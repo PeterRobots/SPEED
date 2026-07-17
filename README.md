@@ -52,19 +52,9 @@ conda activate speed
 pip install --upgrade pip
 
 # CUDA 11.8 (tested):
-pip install -r requirements-cu118.txt
+pip install -r requirements.txt
 
-# Or, on a driver that supports CUDA 12.4:
-# pip install -r requirements-cu124.txt
 ```
-
-If the official PyTorch wheel index is slow from mainland China, the same CUDA 11.8 wheel directory is mirrored by Aliyun. Replace the first line of `requirements-cu118.txt` with the following index URL for the installation, or pass it on the command line when installing the pinned PyTorch stack:
-
-```text
-https://mirrors.aliyun.com/pytorch-wheels/cu118
-```
-
-Do not install unpinned `torch`, `xformers`, and CuPy packages together: their latest PyPI wheels can target different PyTorch/CUDA ABIs. `requirements.txt` contains only the shared Python dependencies and is included by both CUDA-specific files. For another CUDA version, install a mutually compatible PyTorch/torchvision/xFormers stack and the corresponding `cupy-cuda11x` or `cupy-cuda12x`, then install `requirements.txt`.
 
 Before running training, evaluation, or inference, set:
 
@@ -75,10 +65,6 @@ export PYTHONPATH="${PWD}:${PWD}/src/utils:${PYTHONPATH}"
 The first run may download pretrained AlexNet, VGG, PWCNet, LPIPS, or DISTS-related weights. For offline environments, prepare the corresponding PyTorch and torch hub caches in advance.
 
 The training and evaluation configs inherit shared defaults from `configs/base_config.yaml`. Dataset paths default to `datasets/...`; set `VFI_DATASETS_ROOT` to override the common root without editing tracked configs. You can still edit `configs/train_config.yaml` and `configs/eval_config.yaml` for experiment-specific checkpoint paths, batch sizes, and output directories.
-
-```bash
-export VFI_DATASETS_ROOT=/path/to/vfi_datasets
-```
 
 ## Prepare Datasets
 
@@ -129,14 +115,6 @@ Please prepare datasets according to the following structure.
         ├── Type2/<sequence>/...
         └── Type3/<sequence>/...
 ```
-
-Notes:
-
-- LAVIB annotations must contain `name`, `shot`, `tmp_crop`, `vrt_crop`, and `hrz_crop`.
-- When LAVIB `height <= 256`, the loader reads `segments_downsampled_256/.../vid.mp4`; otherwise it reads image frames from `segments/.../frames/*.jpg`.
-- DAVIS uses `frame_0.jpg` and `frame_2.jpg` as inputs, and `frame_1.jpg` as the intermediate ground truth.
-- SNU-FILM uses the list file selected by `mode`, such as `test-extreme.txt`.
-- XTest uses `0000.png`, `0032.png`, and `0016.png` as the two input frames and middle frame.
 
 ## Download Checkpoints
 
@@ -272,12 +250,6 @@ export PYTHONPATH="${PWD}:${PWD}/src/utils:${PYTHONPATH}"
 python train.py --config configs/train_config.yaml
 ```
 
-For a one-step end-to-end smoke test before a long run, use the included smoke config. It executes the real model, perceptual losses, backward pass, optimizer update, one validation batch, and checkpoint writing:
-
-```bash
-SWANLAB_MODE=local python train.py --config configs/train_smoke_config.yaml
-```
-
 Multi-GPU training:
 
 ```bash
@@ -337,4 +309,4 @@ Training and evaluation create timestamped experiment directories:
 
 ## Acknowledgement
 
-This repository includes the FloLPIPS implementation and uses PyTorch, Accelerate, xFormers, LPIPS, DISTS, and SwanLab. We thank the authors and maintainers of these projects for their open-source contributions.
+This repository is adapted from [EDEN](https://github.com/bbldCVer/EDEN) and includes Accelerate, xFormers, LPIPS, DISTS, and SwanLab. We thank the authors and maintainers of these projects for their open-source contributions.
