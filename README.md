@@ -1,6 +1,6 @@
 # [ACM MM 2026] SPEED: One-Step Pixel Diffusion for High-quality Video Frame Interpolation
 
-<a href="#"><img src="https://img.shields.io/badge/Paper-Coming%20Soon-red"></a>
+<a href="https://arxiv.org/abs/2607.15585"><img src="https://img.shields.io/badge/Paper-red"></a>
 <a href="https://huggingface.co/zhZ524/SPEED/tree/main"><img src="https://img.shields.io/badge/Model-HuggingFace-yellow"></a>
 <a href="https://bbldCVer.github.io/SPEED/"><img src="https://img.shields.io/badge/Project-Page-Green"></a>
 <a href="https://github.com/bbldCVer/SPEED"><img src="https://img.shields.io/badge/Code-GitHub-black"></a>
