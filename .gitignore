@@ -10,9 +10,15 @@ __pycache__/
 
 /datasets/
 /checkpoints/
+/ckpts/
 /outputs/
 /interpolation_outputs/
+/inputs/
 /swanlog/
 
 *.ckpt
 *.log
+batch_run.sh
+batch_slowmo.zsh
+run.sh
+*.kate-swp

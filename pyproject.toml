@@ -1,0 +1,28 @@
+[project]
+name = "speed"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.10.*"
+dependencies = [
+    "accelerate>=1.9,<2",
+    "av>=17.1.0",
+    "cupy-cuda12x>=13.6.0",
+    "diffusers>=0.35,<0.40",
+    "dists-pytorch==0.1",
+    "einops>=0.8.2",
+    "lpips==0.1.4",
+    "numpy<2",
+    "omegaconf>=2.3,<2.4",
+    "opencv-python<5",
+    "pandas>=2.3.3",
+    "pillow>=12.3.0",
+    "requests>=2.34.2",
+    "scikit-image<0.26",
+    "swanlab[dashboard]>=0.7,<1",
+    "torch>=2.13.0",
+    "torchvision>=0.28.0",
+    "tqdm>=4.70.0",
+    "transformers>=4.56,<5",
+    "xformers>=0.0.35",
+]

@@ -24,6 +24,7 @@ def parse_args():
                         help="Keep input FPS. By default output FPS is doubled to preserve playback duration.")
     parser.add_argument("--fps", type=float, default=None, help="Override output FPS.")
     parser.add_argument("--fourcc", type=str, default="mp4v", help="OpenCV fourcc for output video.")
+    parser.add_argument("--gen_frames", type=int, default=1, help="Number of generated frames between each real frame.")
 
     parser.add_argument("--device", type=str, default=None, help="Device, e.g. cuda:0 or cpu. Defaults to CUDA if available.")
     parser.add_argument("--precision", type=str, choices=("fp32", "fp16", "bf16"), default="fp32",
@@ -153,7 +154,7 @@ def build_model(config_path, pretrained_path, device, strict_load=False):
     return model
 
 
-def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32"):
+def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32", timesteps=[1000.0]):
     torch = require_torch()
     if len(frame0_list) != len(frame1_list):
         raise ValueError("frame0_list and frame1_list must have the same length.")
@@ -172,20 +173,26 @@ def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32")
     cond_frames = torch.cat((frame0, frame1), dim=0)
 
     noisy_frames = torch.randn_like(frame0)
-    timestep = torch.full((frame0.shape[0],), 1000.0, dtype=frame0.dtype, device=device)
+    mids = []
+    for t in timesteps:
+        timestep = torch.full((frame0.shape[0],), t, dtype=frame0.dtype, device=device)
 
-    autocast_dtype = get_autocast_dtype(precision)
-    autocast_enabled = device.type == "cuda" and autocast_dtype is not None
-    autocast_context = (
-        torch.autocast(device_type="cuda", dtype=autocast_dtype)
-        if autocast_enabled
-        else nullcontext()
-    )
-    with torch.no_grad(), autocast_context:
-        pred = model(noisy_frames=noisy_frames, cond_frames=cond_frames, timestep=timestep)
+        autocast_dtype = get_autocast_dtype(precision)
+        autocast_enabled = device.type == "cuda" and autocast_dtype is not None
+        autocast_context = (
+            torch.autocast(device_type="cuda", dtype=autocast_dtype)
+            if autocast_enabled
+            else nullcontext()
+        )
+        with torch.no_grad(), autocast_context:
+            pred = model(noisy_frames=noisy_frames, cond_frames=cond_frames, timestep=timestep)
 
-    pred = denormalize_pred(pred)
-    return [tensor_to_rgb(pred[i]) for i in range(pred.shape[0])]
+        pred = denormalize_pred(pred)
+        mids.append([tensor_to_rgb(pred[i]) for i in range(pred.shape[0])])
+    if len(mids) == 1:
+        return mids[0]
+    else:
+        return mids
 
 
 def interpolate_image_pair(model, frame0_path, frame1_path, output_path, device, precision):
@@ -284,7 +291,7 @@ def flush_video_batch(model, writer, left_frames, right_frames, device, precisio
         write_rgb_video_frame(writer, mid)
 
 
-def interpolate_video_parallel(model, input_path, output_path, device, precision, batch_size, keep_fps, fps_override, fourcc):
+def interpolate_video_parallel(model, input_path, output_path, device, precision, batch_size, keep_fps, fps_override, fourcc, gen_frames):
     if batch_size <= 0:
         raise ValueError("--batch_size must be greater than 0.")
 
@@ -319,16 +326,26 @@ def interpolate_video_parallel(model, input_path, output_path, device, precision
     print(f"Saved interpolated video to: {output_path}")
 
 
-def interpolate_video_sequential(model, input_path, output_path, device, precision, keep_fps, fps_override, fourcc):
+def interpolate_video_sequential(model, input_path, output_path, device, precision, keep_fps, fps_override, fourcc, gen_frames):
     cap, writer, first, total_pairs = prepare_video_io(input_path, output_path, keep_fps, fps_override, fourcc)
     last_frame = first
     pbar = create_progress_bar(total=total_pairs, desc="Interpolating video pairs")
+    match gen_frames:
+        case 1:
+            timesteps = [1000.0]
+        case 2:
+            timesteps = [666.7, 1333.4]
+        case 3:
+            timesteps = [500.0, 1000.0, 1500.0]
+        case _:
+            raise ValueError(f"Number of generated frames not currently supported, {gen_frames} != 1, 2 or 3")
 
     try:
         for prev, cur in iter_video_pairs(cap, first):
-            mid = interpolate_batch(model, [prev], [cur], device, precision=precision)[0]
+            mids = interpolate_batch(model, [prev], [cur], device, timesteps=timesteps, precision=precision)
             write_rgb_video_frame(writer, prev)
-            write_rgb_video_frame(writer, mid)
+            for mid in mids:
+                write_rgb_video_frame(writer, mid[0])
             last_frame = cur
             pbar.update(1)
 
@@ -350,6 +367,8 @@ def validate_args(args):
         raise ValueError("--fps must be greater than 0.")
     if len(args.fourcc) != 4:
         raise ValueError("--fourcc must be exactly 4 characters, e.g. mp4v.")
+    if not args.gen_frames > 0:
+        raise ValueError("--gen_frames must be greater than 0")
 
 
 def main():
@@ -382,6 +401,7 @@ def main():
             args.keep_fps,
             args.fps,
             args.fourcc,
+            args.gen_frames,
         )
     else:
         interpolate_video_sequential(
@@ -393,6 +413,7 @@ def main():
             args.keep_fps,
             args.fps,
             args.fourcc,
+            args.gen_frames,
         )
 
 
