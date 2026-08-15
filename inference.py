@@ -1,6 +1,7 @@
 import argparse
 from contextlib import nullcontext
 from pathlib import Path
+import numpy as np
 
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -154,7 +155,7 @@ def build_model(config_path, pretrained_path, device, strict_load=False):
     return model
 
 
-def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32", timesteps=[1000.0]):
+def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32") -> list:
     torch = require_torch()
     if len(frame0_list) != len(frame1_list):
         raise ValueError("frame0_list and frame1_list must have the same length.")
@@ -170,38 +171,35 @@ def interpolate_batch(model, frame0_list, frame1_list, device, precision="fp32",
 
     frame0 = normalize_frames(frame0)
     frame1 = normalize_frames(frame1)
+
     cond_frames = torch.cat((frame0, frame1), dim=0)
-
     noisy_frames = torch.randn_like(frame0)
-    mids = []
-    for t in timesteps:
-        timestep = torch.full((frame0.shape[0],), t, dtype=frame0.dtype, device=device)
 
-        autocast_dtype = get_autocast_dtype(precision)
-        autocast_enabled = device.type == "cuda" and autocast_dtype is not None
-        autocast_context = (
-            torch.autocast(device_type="cuda", dtype=autocast_dtype)
-            if autocast_enabled
-            else nullcontext()
-        )
-        with torch.no_grad(), autocast_context:
-            pred = model(noisy_frames=noisy_frames, cond_frames=cond_frames, timestep=timestep)
+    timestep = torch.full((frame0.shape[0],), 1000.0, dtype=frame0.dtype, device=device)
 
-        pred = denormalize_pred(pred)
-        mids.append([tensor_to_rgb(pred[i]) for i in range(pred.shape[0])])
-    if len(mids) == 1:
-        return mids[0]
-    else:
-        return mids
+    autocast_dtype = get_autocast_dtype(precision)
+    autocast_enabled = device.type == "cuda" and autocast_dtype is not None
+    autocast_context = (
+        torch.autocast(device_type="cuda", dtype=autocast_dtype)
+        if autocast_enabled
+        else nullcontext()
+    )
+    with torch.no_grad(), autocast_context:
+        pred = model(noisy_frames=noisy_frames, cond_frames=cond_frames, timestep=timestep)
+
+    pred = denormalize_pred(pred)
+    mids = [tensor_to_rgb(pred[i]) for i in range(pred.shape[0])]
+
+    return mids
 
 
-def interpolate_image_pair(model, frame0_path, frame1_path, output_path, device, precision):
+def interpolate_image_pair(model, frame0_path, frame1_path, output_path, device, precision, gen_frames=1):
     frame0 = read_rgb_image(frame0_path)
     frame1 = read_rgb_image(frame1_path)
     if frame0.shape != frame1.shape:
         raise ValueError(f"Input images must have the same shape, got {frame0.shape} and {frame1.shape}.")
 
-    pred = interpolate_batch(model, [frame0], [frame1], device, precision=precision)[0]
+    pred = interpolate_batch(model, [frame0], [frame1], device, precision=precision, gen_frames=gen_frames)[0]
     write_rgb_image(output_path, pred)
     print(f"Saved interpolated image to: {output_path}")
 
@@ -284,11 +282,22 @@ def iter_video_pairs(cap, first_frame):
         prev = cur
 
 
-def flush_video_batch(model, writer, left_frames, right_frames, device, precision):
+def flush_video_batch(model, writer, left_frames, right_frames, device, precision, gen_frames=1):
     mids = interpolate_batch(model, left_frames, right_frames, device, precision=precision)
     for left, mid in zip(left_frames, mids):
         write_rgb_video_frame(writer, left)
         write_rgb_video_frame(writer, mid)
+
+
+def recursive_gen_frames(model, prev:list, cur:list, gen_frames:int, device, writer, precision=precision):
+    if gen_frames > 0:
+        mid = interpolate_batch(model, prev, cur, device, precision=precision)
+        write_rgb_video_frame(writer, mid[0])
+        gen_frames = gen_frames - 1
+        recursive_gen_frames(model, prev, mid, gen_frames, device, writer, precision=precision)
+        recursive_gen_frames(model, mid, cur, gen_frames, device, writer, precision=precision)
+
+    return mids
 
 
 def interpolate_video_parallel(model, input_path, output_path, device, precision, batch_size, keep_fps, fps_override, fourcc, gen_frames):
@@ -330,25 +339,12 @@ def interpolate_video_sequential(model, input_path, output_path, device, precisi
     cap, writer, first, total_pairs = prepare_video_io(input_path, output_path, keep_fps, fps_override, fourcc)
     last_frame = first
     pbar = create_progress_bar(total=total_pairs, desc="Interpolating video pairs")
-    match gen_frames:
-        case 1:
-            timesteps = [1000.0]
-        case 2:
-            timesteps = [666.7, 1333.4]
-        case 3:
-            timesteps = [500.0, 1000.0, 1500.0]
-        case _:
-            raise ValueError(f"Number of generated frames not currently supported, {gen_frames} != 1, 2 or 3")
-
     try:
         for prev, cur in iter_video_pairs(cap, first):
-            mids = interpolate_batch(model, [prev], [cur], device, timesteps=timesteps, precision=precision)
             write_rgb_video_frame(writer, prev)
-            for mid in mids:
-                write_rgb_video_frame(writer, mid[0])
+            recursive_gen_frames(model, [prev], [cur], gen_frames, device, writer, precision=precision)
             last_frame = cur
             pbar.update(1)
-
         write_rgb_video_frame(writer, last_frame)
     finally:
         pbar.close()
